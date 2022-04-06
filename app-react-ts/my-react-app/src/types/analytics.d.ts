@@ -35,6 +35,7 @@ namespace IntervalStats {
     date_start_gmt: Date;
     date_end: Date;
     date_end_gmt: Date;
+    type: string;
     subtotals: Totals;
   }
 

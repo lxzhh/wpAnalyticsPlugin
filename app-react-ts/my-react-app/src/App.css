@@ -40,6 +40,8 @@
 button {
   font-size: calc(10px + 2vmin);
 }
+
+
 .dashboard-table{
   display: flex;
   flex-direction: row;

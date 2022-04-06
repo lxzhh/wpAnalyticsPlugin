@@ -14,7 +14,6 @@ import {
   currentOrderStats,
   previousOrderStats,
 } from "./response";
-import { setDate } from "date-fns";
 const { RangePicker } = DatePicker;
 const kVisitorCountRatio = 66;
 const kViewerCountRatio = 79;
@@ -34,6 +33,7 @@ function App() {
   // 总数字
   const [totalData, setTotalData] = useState<Array<any>>([]);
   // 时间序列数字
+  const [intervalData, setIntervalData] = useState<Record<string, any>>([]);
 
   const [conversionData, setConversionData] = useState<ConversionData.RateData>(
     {} as ConversionData.RateData
@@ -88,30 +88,108 @@ function App() {
         value: `${totalRefund} usd`,
       },
     ]);
-    const totalSessions = orderCount * kVisitorCountRatio || 11989;
+    const totalSessions = orderCount * kViewerCountRatio || 11989;
     const cartConversionRate =
       ((ASCIISum(location.href) + dateValues![0]!.unix() || 0) % 400) / 100 +
-      2.1;
+      6.5;
     setConversionData({
       conversionRate: _conversionRate,
       totalSessions: totalSessions,
       cartRate: cartConversionRate,
-      checkoutRate: cartConversionRate * 0.9,
+      checkoutRate: cartConversionRate * 0.6 + 1,
     });
   }
-  function handleRevenue(currentData: any, previousData: any) {}
-  function handleOrderData(currentData: any, previousData: any) {}
-  if (process.env.NODE_ENV === "development") {
+  function handleRevenue(currentData: any, previousData: any) {
+    const concatData = previousData.data.intervals
+      .map((d: any) => {
+        d.type = "previous";
+        return d;
+      })
+      .concat(
+        currentData.data.intervals.map((d: any) => {
+          d.type = "current";
+          return d;
+        })
+      );
+    const totalSales = concatData.map((d: IntervalStats.Interval) => {
+      return {
+        interval: d.interval,
+        value: d.subtotals.total_sales,
+        type: d.type,
+      };
+    });
+    const totalSessions = concatData.map((d: IntervalStats.Interval) => {
+      return {
+        interval: d.interval,
+        value: d.subtotals.orders_count * kViewerCountRatio,
+        type: d.type,
+      };
+    });
+    const refundRate = concatData.map((d: IntervalStats.Interval) => {
+      return {
+        interval: d.interval,
+        value: d.subtotals.refunds / d.subtotals.total_sales,
+        type: d.type,
+      };
+    });
+    const avgValue = concatData.map((d: IntervalStats.Interval) => {
+      return {
+        interval: d.interval,
+        value: d.subtotals.avg_order_value,
+        type: d.type,
+      };
+    });
+    const totalOrders = concatData.map((d: IntervalStats.Interval) => {
+      return {
+        interval: d.interval,
+        value: d.subtotals.orders_count,
+        type: d.type,
+      };
+    });
+    setIntervalData([
+      {
+        name: "Total sales",
+        value: totalSales,
+        link: "chart=total_sales&path=%2Fanalytics%2Frevenue",
+      },
+      {
+        name: "Online store sessions",
+        value: totalSessions,
+        link: "/jetpack",
+      },
+      {
+        name: "Returning rate",
+        value: refundRate,
+        link: "chart=refunds&path=%2Fanalytics%2Frevenue",
+      },
+      {
+        name: "Online store conversion rate",
+        value: conversionData,
+      },
+      {
+        name: "Avg order value",
+        value: avgValue,
+        link: "chart=avg_order_value&path=%2Fanalytics%2Forders",
+      },
+      {
+        name: "Total orders",
+        value: totalOrders,
+        link: "chart=orders_count&path=%2Fanalytics%2Forders",
+      },
+    ]);
+  }
+
+  if (true) {
     useEffect(() => {
       handlePerformanceIndicator({ data: performIndicators });
       handleRevenue(
         { data: currentRevenueStats },
         { data: previousRevenueStats }
       );
-      handleOrderData(
-        { data: currentOrderStats },
-        { data: previousOrderStats }
-      );
+      // handleOrderData(
+      //   { data: currentOrderStats },
+      //   { data: previousOrderStats }
+      // );
     }, []);
   } else {
     Axios.get("/wp-json/wc-analytics/reports/performance-indicators", {
@@ -143,15 +221,24 @@ function App() {
 
   return (
     <div className="App">
-      <RangePicker
-        format="YYYY-MM-DD"
-        ranges={{
-          Today: [moment(), moment()],
-          "This Month": [moment().startOf("month"), moment().endOf("month")],
-        }}
-        onChange={onChange}
-        onOk={onOk}
-      />
+      <Row>
+        <Col span={4} offset={1}>
+          <RangePicker
+            format="YYYY-MM-DD"
+            ranges={{
+              Today: [moment(), moment()],
+              "This Month": [
+                moment().startOf("month"),
+                moment().endOf("month"),
+              ],
+            }}
+            onChange={onChange}
+            onOk={onOk}
+            className="date-picker"
+          />
+        </Col>
+      </Row>
+
       <Row className="total-data-board" align="middle">
         <Col offset={2}></Col>
         {totalData.map((data, i) => {
@@ -165,13 +252,11 @@ function App() {
         <Col offset={2}></Col>
       </Row>
       <div className="dashboard-table">
-        {[...Array(5)].map((_, i) => {
-          if (i == 3) {
-            return (
-              <ConversionCard key={i} cdata={conversionData}></ConversionCard>
-            );
+        {intervalData.map((data: any, i: number) => {
+          if (data.name === "Online store conversion rate") {
+            return <ConversionCard key={i} cdata={data.value}></ConversionCard>;
           } else {
-            return <Analytics key={i}></Analytics>;
+            return <Analytics key={i} cdata={data}></Analytics>;
           }
         })}
       </div>

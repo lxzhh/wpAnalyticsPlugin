@@ -7,11 +7,7 @@ function ConversionCard({ cdata }: ConversionData.Data) {
   const conversionData = cdata;
   return (
     <div style={{ width: "33%" }}>
-      <Card
-        title="Online store conversion rate"
-        extra={<a href="#">More</a>}
-        style={{ margin: "10px" }}
-      >
+      <Card title="Online store conversion rate" style={{ margin: "10px" }}>
         <div className="total-data">
           <span>{conversionData.conversionRate}%</span>
           <span>-</span>
@@ -21,7 +17,7 @@ function ConversionCard({ cdata }: ConversionData.Data) {
           <Row>
             <Col span={18}>Added to cart</Col>
             <Col span={1} offset={2}>
-              <span>{conversionData.cartRate}%</span>
+              <span>{conversionData.cartRate?.toFixed(2)}%</span>
             </Col>
             <Col span={1} offset={2}>
               <span>-</span>
@@ -42,7 +38,7 @@ function ConversionCard({ cdata }: ConversionData.Data) {
           <Row>
             <Col span={18}>Reached checkout</Col>
             <Col span={1} offset={2}>
-              <span>{conversionData.checkoutRate}%</span>
+              <span>{conversionData.checkoutRate?.toFixed(2)}%</span>
             </Col>
             <Col span={1} offset={2}>
               <span>-</span>
