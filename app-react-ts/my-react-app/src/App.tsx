@@ -7,16 +7,9 @@ import Analytics from "./components/AnalyticsCard";
 import ConversionCard from "./components/ConversionCard";
 import { RangeValue } from "rc-picker/lib/interface";
 import moment, { Moment } from "moment";
-import {
-  performIndicators,
-  currentRevenueStats,
-  previousRevenueStats,
-  currentOrderStats,
-  previousOrderStats,
-} from "./response";
+import { performIndicators } from "./response";
 const { RangePicker } = DatePicker;
-const kVisitorCountRatio = 66;
-const kViewerCountRatio = 79;
+const kVisitorCountRatio = 0.86;
 const ASCIISum = (str: string) =>
   Math.floor(
     str
@@ -24,20 +17,37 @@ const ASCIISum = (str: string) =>
       .map((item) => item.charCodeAt(0))
       .reduce((prev, next) => prev + next)
   );
+
+// 创建请求实例
+let client = Axios.create({
+  timeout: 60000,
+});
+if (process.env.NODE_ENV === "development") {
+  client = Axios.create({
+    baseURL: "https://worldhappys.com/",
+    timeout: 60000,
+  });
+}
 function App() {
   // 时间区间
   const [dateValues, setDateValues] = useState<RangeValue<Moment>>([
-    moment(),
+    moment().subtract(7, "days"),
     moment(),
   ] as RangeValue<Moment>);
+  const [conversionData, setConversionData] = useState<ConversionData.RateData>(
+    {} as ConversionData.RateData
+  );
+  const [previousDateValues, setPreviousDateValues] = useState<
+    Array<Moment | undefined>
+  >([moment(), moment()]);
   // 总数字
   const [totalData, setTotalData] = useState<Array<any>>([]);
   // 时间序列数字
   const [intervalData, setIntervalData] = useState<Record<string, any>>([]);
 
-  const [conversionData, setConversionData] = useState<ConversionData.RateData>(
-    {} as ConversionData.RateData
-  );
+  /**
+   * Date range picker changed
+   */
   function onChange(
     values: RangeValue<Moment>,
     formatString: [string, string]
@@ -45,12 +55,24 @@ function App() {
     console.log("Selected Time: ", values);
     console.log("Formatted Selected Time: ", formatString);
     setDateValues(values);
+    const afterDate = dateValues![0];
+    const beforeDate = dateValues![1];
+    const durationDays = beforeDate!.diff(afterDate, "days");
+    const previousAfterDate = afterDate
+      ?.clone()
+      ?.subtract(durationDays, "days");
+    const previousBeforeDate = afterDate?.clone().subtract(1, "days");
+    setPreviousDateValues([previousAfterDate, previousBeforeDate]);
   }
 
   function onOk(value: RangeValue<Moment>) {
     console.log("onOk: ", value);
   }
 
+  /**
+   * 处理总数据
+   * @param res
+   */
   function handlePerformanceIndicator(res: any) {
     console.log("get analytics data", res);
     const indicatorObject = res.data.reduce(
@@ -59,89 +81,121 @@ function App() {
       {}
     ) as Record<string, PerformanceIndicator.Indicator>;
     const orderCount = indicatorObject["orders/orders_count"].value || 0;
-    const visitorCount = orderCount * kVisitorCountRatio;
-    const _conversionRate =
-      ((ASCIISum(location.href) + dateValues![0]!.unix() || 0) % 300) / 100 + 2;
+    // 根据站点域名和时间跨度计算出来的随机值
+    const siteRandomValue =
+      ASCIISum(location.host) +
+        dateValues![0]!.unix() +
+        dateValues![1]!.unix() || 0;
+    const _conversionRate = (siteRandomValue % 300) / 100 + 2;
     console.log("conversionRate", _conversionRate, ASCIISum(location.href));
     const conversionRate = _conversionRate;
     const totalSale = indicatorObject["revenue/total_sales"].value;
     const totalRefund = indicatorObject["revenue/refunds"].value;
+    const totalSessions = Math.floor((orderCount / _conversionRate) * 100);
+    const visitorCount = Math.floor(totalSessions * kVisitorCountRatio);
+
     setTotalData([
       {
         name: "Visitors",
-        value: visitorCount,
+        value: new Intl.NumberFormat().format(visitorCount),
       },
       {
         name: "Order count",
-        value: orderCount,
+        value: new Intl.NumberFormat().format(orderCount),
       },
       {
         name: "Conversion rate",
-        value: `${conversionRate}%`,
+        value: `${conversionRate.toFixed(2)}%`,
       },
       {
         name: "Total sale",
-        value: `${totalSale} usd`,
+        value: `$${new Intl.NumberFormat().format(totalSale!)}`,
       },
       {
         name: "Refund",
-        value: `${totalRefund} usd`,
+        value: `$${new Intl.NumberFormat().format(totalRefund!)}`,
       },
     ]);
-    const totalSessions = orderCount * kViewerCountRatio || 11989;
-    const cartConversionRate =
-      ((ASCIISum(location.href) + dateValues![0]!.unix() || 0) % 400) / 100 +
-      6.5;
+    const cartConversionRate = (siteRandomValue % 400) / 100 + 6.5;
     setConversionData({
       conversionRate: _conversionRate,
       totalSessions: totalSessions,
       cartRate: cartConversionRate,
-      checkoutRate: cartConversionRate * 0.6 + 1,
+      checkoutRate: (siteRandomValue % 300) / 100 + 2.8,
+      convertedSessions: orderCount,
     });
   }
-  function handleRevenue(currentData: any, previousData: any) {
+
+  /**
+   * 处理时间序列数据
+   * @param dataList
+   */
+  function handleRevenue(dataList: any[]) {
+    const currentData = dataList[0];
+    const previousData = dataList[1];
+    const durationDays = moment(currentData.data.intervals[0].date_end).diff(
+      moment(previousData.data.intervals[0].date_end),
+      "days"
+    );
+    console.log("dataList", dataList, "durationDays", durationDays);
+    const afterDate = dateValues![0];
+    const beforeDate = dateValues![1];
+    const [previousAfterDate, previousBeforeDate] = previousDateValues;
+    const labelFormat = "MMM DD YYYY";
     const concatData = previousData.data.intervals
       .map((d: any) => {
-        d.type = "previous";
+        d.date_axis = moment(d.date_end)
+          .add(durationDays, "days")
+          .format(moment.HTML5_FMT.DATE);
+        d.type = `${afterDate?.format(labelFormat)} - ${beforeDate?.format(
+          labelFormat
+        )}`;
         return d;
       })
       .concat(
         currentData.data.intervals.map((d: any) => {
-          d.type = "current";
+          d.date_axis = moment(d.date_end).format(moment.HTML5_FMT.DATE);
+          d.type = `${previousAfterDate?.format(
+            labelFormat
+          )} - ${previousBeforeDate?.format(labelFormat)}`;
           return d;
         })
       );
     const totalSales = concatData.map((d: IntervalStats.Interval) => {
       return {
-        interval: d.interval,
+        interval: d.date_axis,
         value: d.subtotals.total_sales,
         type: d.type,
       };
     });
     const totalSessions = concatData.map((d: IntervalStats.Interval) => {
       return {
-        interval: d.interval,
-        value: d.subtotals.orders_count * kViewerCountRatio,
+        interval: d.date_axis,
+        value: Math.floor(
+          (d.subtotals.orders_count / conversionData.conversionRate) * 100
+        ),
         type: d.type,
       };
     });
     const refundRate = concatData.map((d: IntervalStats.Interval) => {
       return {
-        interval: d.interval,
-        value: d.subtotals.refunds / d.subtotals.total_sales,
+        interval: d.date_axis,
+        value: Number(
+          (d.subtotals.refunds / Math.abs(d.subtotals.total_sales)).toFixed(2)
+        ),
         type: d.type,
       };
     });
     const avgValue = concatData.map((d: IntervalStats.Interval) => {
       return {
-        interval: d.interval,
+        interval: d.date_axis,
         value: d.subtotals.avg_order_value,
         type: d.type,
       };
     });
     const totalOrders = concatData.map((d: IntervalStats.Interval) => {
       return {
-        interval: d.interval,
+        interval: d.date_axis,
         value: d.subtotals.orders_count,
         type: d.type,
       };
@@ -151,16 +205,31 @@ function App() {
         name: "Total sales",
         value: totalSales,
         link: "chart=total_sales&path=%2Fanalytics%2Frevenue",
+        total: `$${new Intl.NumberFormat().format(
+          currentData.data.totals.total_sales.toFixed(2)
+        )}`,
       },
       {
         name: "Online store sessions",
         value: totalSessions,
         link: "/jetpack",
+        total: new Intl.NumberFormat().format(
+          Math.floor(
+            (currentData.data.totals.orders_count /
+              conversionData.conversionRate) *
+              100
+          )
+        ),
       },
       {
-        name: "Returning rate",
+        name: "Returning customer rate",
         value: refundRate,
         link: "chart=refunds&path=%2Fanalytics%2Frevenue",
+        total: `${(
+          (currentData.data.totals.refunds /
+            currentData.data.totals.gross_sales) *
+          100
+        ).toFixed(2)} %`,
       },
       {
         name: "Online store conversion rate",
@@ -170,72 +239,124 @@ function App() {
         name: "Avg order value",
         value: avgValue,
         link: "chart=avg_order_value&path=%2Fanalytics%2Forders",
+        total: `$${currentData.data.totals.avg_order_value.toFixed(2)}`,
       },
       {
         name: "Total orders",
         value: totalOrders,
         link: "chart=orders_count&path=%2Fanalytics%2Forders",
+        total: new Intl.NumberFormat().format(
+          currentData.data.totals.orders_count
+        ),
       },
     ]);
   }
-
-  if (true) {
-    useEffect(() => {
+  useEffect(() => {
+    const afterDate = dateValues![0];
+    const beforeDate = dateValues![1];
+    const durationDays = beforeDate!.diff(afterDate, "days");
+    let intervalType = durationDays > 7 ? "week" : "day";
+    if (process.env.NODE_ENV === "development") {
       handlePerformanceIndicator({ data: performIndicators });
-      handleRevenue(
-        { data: currentRevenueStats },
-        { data: previousRevenueStats }
-      );
-      // handleOrderData(
-      //   { data: currentOrderStats },
-      //   { data: previousOrderStats }
-      // );
-    }, []);
-  } else {
-    Axios.get("/wp-json/wc-analytics/reports/performance-indicators", {
-      params: {
-        after: "2022-04-01T00:00:00",
-        before: "2022-04-03T23:59:59",
-        stats:
-          "revenue/total_sales,revenue/net_revenue,orders/orders_count,orders/avg_order_value,products/items_sold,revenue/refunds,coupons/orders_count,coupons/amount,taxes/total_tax,taxes/order_tax,taxes/shipping_tax,revenue/shipping,downloads/download_count,jetpack/stats/visitors,variations/items_sold,revenue/gross_sales,jetpack/stats/views",
-        _locale: "user",
-      },
-    }).then(handlePerformanceIndicator);
-    Axios.get("/wp-json/wc-analytics/reports/revenue/stats", {
-      params: {
-        after: "2022-04-01T00:00:00",
-        before: "2022-04-03T23:59:59",
-        order: "asc",
-        interval: "day",
-        per_page: 100,
-        "fields[0]": "total_sales",
-        "fields[1]": "net_revenue",
-        "fields[2]": "refunds",
-        "fields[3]": "shipping",
-        _locale: "user",
-      },
-    }).then((res) => {
-      console.log("get analytics revenue/stats", res);
-    });
-  }
+    }
+    client
+      .get("/wp-json/wc-analytics/reports/performance-indicators", {
+        params: {
+          after: afterDate?.format(),
+          before: beforeDate?.format(),
+          stats:
+            "revenue/total_sales,revenue/net_revenue,orders/orders_count,orders/avg_order_value,products/items_sold,revenue/refunds,coupons/orders_count,coupons/amount,taxes/total_tax,taxes/order_tax,taxes/shipping_tax,revenue/shipping,downloads/download_count,jetpack/stats/visitors,variations/items_sold,revenue/gross_sales,jetpack/stats/views",
+          _locale: "user",
+        },
+      })
+      .then(handlePerformanceIndicator);
+    const currentDataReq = client.get(
+      "/wp-json/wc-analytics/reports/revenue/stats",
+      {
+        params: {
+          after: afterDate?.format(),
+          before: beforeDate?.format(),
+          order: "asc",
+          interval: intervalType,
+          per_page: 100,
+          "fields[0]": "total_sales",
+          "fields[1]": "net_revenue",
+          "fields[2]": "refunds",
+          "fields[3]": "avg_order_value",
+          "fields[4]": "orders_count",
+          "fields[5]": "gross_sales",
+          _locale: "user",
+        },
+      }
+    );
+    const previousAfterDate = afterDate
+      ?.clone()
+      ?.subtract(durationDays, "days")
+      .format();
+    const previousBeforeDate = afterDate?.clone().subtract(1, "days").format();
+    console.log(
+      "previousAfterDate",
+      previousAfterDate,
+      "previousBeforeDate",
+      previousBeforeDate
+    );
 
+    const previousDataReq = client.get(
+      "/wp-json/wc-analytics/reports/revenue/stats",
+      {
+        params: {
+          after: previousAfterDate,
+          before: previousBeforeDate,
+          order: "asc",
+          interval: intervalType,
+          per_page: 100,
+          "fields[0]": "total_sales",
+          "fields[1]": "net_revenue",
+          "fields[2]": "refunds",
+          "fields[3]": "avg_order_value",
+          "fields[4]": "orders_count",
+          "fields[5]": "gross_sales",
+          _locale: "user",
+        },
+      }
+    );
+    Promise.all([currentDataReq, previousDataReq]).then(handleRevenue);
+    // }
+  }, [dateValues]);
   return (
     <div className="App">
       <Row>
-        <Col span={4} offset={1}>
-          <RangePicker
-            format="YYYY-MM-DD"
-            ranges={{
-              Today: [moment(), moment()],
-              "This Month": [
-                moment().startOf("month"),
-                moment().endOf("month"),
-              ],
-            }}
-            onChange={onChange}
-            onOk={onOk}
-            className="date-picker"
-          />
+        <Col span={6} offset={1}>
+          <div style={{ margin: 10 }}>
+            <h2>Date range:</h2>
+            <div className="range-picker-border">
+              <RangePicker
+                format="YYYY-MM-DD"
+                size="large"
+                bordered={false}
+                ranges={{
+                  Today: [moment(), moment()],
+                  "This Month": [
+                    moment().startOf("month"),
+                    moment().endOf("month"),
+                  ],
+                }}
+                defaultValue={[
+                  moment().subtract(7, "days"),
+                  moment().startOf("day"),
+                ]}
+                onChange={onChange}
+                onOk={onOk}
+                className="date-picker"
+              />
+              <p>
+                {`vs previous period (${previousDateValues[0]?.format(
+                  "MMM D"
+                )} - ${previousDateValues[1]?.format("MMM DD YYYY")}`}
+                )
+              </p>
+            </div>
+          </div>
         </Col>
       </Row>
 
@@ -254,7 +375,9 @@ function App() {
       <div className="dashboard-table">
         {intervalData.map((data: any, i: number) => {
           if (data.name === "Online store conversion rate") {
-            return <ConversionCard key={i} cdata={data.value}></ConversionCard>;
+            return (
+              <ConversionCard key={i} cdata={conversionData}></ConversionCard>
+            );
           } else {
             return <Analytics key={i} cdata={data}></Analytics>;
           }

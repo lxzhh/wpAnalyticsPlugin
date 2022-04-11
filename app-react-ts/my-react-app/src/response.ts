@@ -5,11 +5,11 @@ export const performIndicators = [
     label: "Total sales",
     format: "currency",
     text: "test strings",
-    value: 0,
+    value: 5410,
     _links: {
       api: [
         {
-          href: "http://staging2.xiangmingm.sg-host.com/wp-json/wc-analytics/reports/revenue/stats",
+          href: "https://worldhappys.com/wp-json/wc-analytics/reports/revenue/stats",
         },
       ],
       report: [{ href: "/analytics/revenue" }],
@@ -21,11 +21,11 @@ export const performIndicators = [
     label: "Net sales",
     format: "currency",
     text: "test strings",
-    value: 0,
+    value: 4970,
     _links: {
       api: [
         {
-          href: "http://staging2.xiangmingm.sg-host.com/wp-json/wc-analytics/reports/revenue/stats",
+          href: "https://worldhappys.com/wp-json/wc-analytics/reports/revenue/stats",
         },
       ],
       report: [{ href: "/analytics/revenue" }],
@@ -37,11 +37,11 @@ export const performIndicators = [
     label: "Orders",
     format: "number",
     text: "test strings",
-    value: 0,
+    value: 44,
     _links: {
       api: [
         {
-          href: "http://staging2.xiangmingm.sg-host.com/wp-json/wc-analytics/reports/orders/stats",
+          href: "https://worldhappys.com/wp-json/wc-analytics/reports/orders/stats",
         },
       ],
       report: [{ href: "/analytics/orders" }],
@@ -53,11 +53,11 @@ export const performIndicators = [
     label: "Average order value",
     format: "currency",
     text: "test strings",
-    value: 0,
+    value: 112.9545454545454532535586622543632984161376953125,
     _links: {
       api: [
         {
-          href: "http://staging2.xiangmingm.sg-host.com/wp-json/wc-analytics/reports/orders/stats",
+          href: "https://worldhappys.com/wp-json/wc-analytics/reports/orders/stats",
         },
       ],
       report: [{ href: "/analytics/orders" }],
@@ -69,11 +69,11 @@ export const performIndicators = [
     label: "Products sold",
     format: "number",
     text: "test strings",
-    value: 0,
+    value: 59216,
     _links: {
       api: [
         {
-          href: "http://staging2.xiangmingm.sg-host.com/wp-json/wc-analytics/reports/products/stats",
+          href: "https://worldhappys.com/wp-json/wc-analytics/reports/products/stats",
         },
       ],
       report: [{ href: "/analytics/products" }],
@@ -85,11 +85,11 @@ export const performIndicators = [
     label: "Returns",
     format: "currency",
     text: "test strings",
-    value: 0,
+    value: 91,
     _links: {
       api: [
         {
-          href: "http://staging2.xiangmingm.sg-host.com/wp-json/wc-analytics/reports/revenue/stats",
+          href: "https://worldhappys.com/wp-json/wc-analytics/reports/revenue/stats",
         },
       ],
       report: [{ href: "/analytics/revenue" }],
@@ -105,7 +105,7 @@ export const performIndicators = [
     _links: {
       api: [
         {
-          href: "http://staging2.xiangmingm.sg-host.com/wp-json/wc-analytics/reports/coupons/stats",
+          href: "https://worldhappys.com/wp-json/wc-analytics/reports/coupons/stats",
         },
       ],
       report: [{ href: "/analytics/coupons" }],
@@ -121,7 +121,7 @@ export const performIndicators = [
     _links: {
       api: [
         {
-          href: "http://staging2.xiangmingm.sg-host.com/wp-json/wc-analytics/reports/coupons/stats",
+          href: "https://worldhappys.com/wp-json/wc-analytics/reports/coupons/stats",
         },
       ],
       report: [{ href: "/analytics/coupons" }],
@@ -137,7 +137,7 @@ export const performIndicators = [
     _links: {
       api: [
         {
-          href: "http://staging2.xiangmingm.sg-host.com/wp-json/wc-analytics/reports/taxes/stats",
+          href: "https://worldhappys.com/wp-json/wc-analytics/reports/taxes/stats",
         },
       ],
       report: [{ href: "/analytics/taxes" }],
@@ -153,7 +153,7 @@ export const performIndicators = [
     _links: {
       api: [
         {
-          href: "http://staging2.xiangmingm.sg-host.com/wp-json/wc-analytics/reports/taxes/stats",
+          href: "https://worldhappys.com/wp-json/wc-analytics/reports/taxes/stats",
         },
       ],
       report: [{ href: "/analytics/taxes" }],
@@ -169,7 +169,7 @@ export const performIndicators = [
     _links: {
       api: [
         {
-          href: "http://staging2.xiangmingm.sg-host.com/wp-json/wc-analytics/reports/taxes/stats",
+          href: "https://worldhappys.com/wp-json/wc-analytics/reports/taxes/stats",
         },
       ],
       report: [{ href: "/analytics/taxes" }],
@@ -181,11 +181,11 @@ export const performIndicators = [
     label: "Shipping",
     format: "currency",
     text: "test strings",
-    value: 0,
+    value: 440,
     _links: {
       api: [
         {
-          href: "http://staging2.xiangmingm.sg-host.com/wp-json/wc-analytics/reports/revenue/stats",
+          href: "https://worldhappys.com/wp-json/wc-analytics/reports/revenue/stats",
         },
       ],
       report: [{ href: "/analytics/revenue" }],
@@ -201,7 +201,7 @@ export const performIndicators = [
     _links: {
       api: [
         {
-          href: "http://staging2.xiangmingm.sg-host.com/wp-json/wc-analytics/reports/downloads/stats",
+          href: "https://worldhappys.com/wp-json/wc-analytics/reports/downloads/stats",
         },
       ],
       report: [{ href: "/analytics/downloads" }],
@@ -212,12 +212,11 @@ export const performIndicators = [
     chart: "visitors",
     label: "Visitors",
     format: "number",
-    text: "test strings",
-    value: 0,
+    value: null,
     _links: {
       api: [
         {
-          href: "http://staging2.xiangmingm.sg-host.com/wp-json/jetpack/v4/module/stats/data",
+          href: "https://worldhappys.com/wp-json/jetpack/v4/module/stats/data",
         },
       ],
       report: [{ href: "/jetpack" }],
@@ -233,7 +232,7 @@ export const performIndicators = [
     _links: {
       api: [
         {
-          href: "http://staging2.xiangmingm.sg-host.com/wp-json/wc-analytics/reports/variations/stats",
+          href: "https://worldhappys.com/wp-json/wc-analytics/reports/variations/stats",
         },
       ],
       report: [{ href: "/analytics/variations" }],
@@ -245,11 +244,11 @@ export const performIndicators = [
     label: "Gross sales",
     format: "currency",
     text: "test strings",
-    value: 0,
+    value: 5061,
     _links: {
       api: [
         {
-          href: "http://staging2.xiangmingm.sg-host.com/wp-json/wc-analytics/reports/revenue/stats",
+          href: "https://worldhappys.com/wp-json/wc-analytics/reports/revenue/stats",
         },
       ],
       report: [{ href: "/analytics/revenue" }],
@@ -260,12 +259,11 @@ export const performIndicators = [
     chart: "views",
     label: "Views",
     format: "number",
-    text: "test strings",
-    value: 0,
+    value: null,
     _links: {
       api: [
         {
-          href: "http://staging2.xiangmingm.sg-host.com/wp-json/jetpack/v4/module/stats/data",
+          href: "https://worldhappys.com/wp-json/jetpack/v4/module/stats/data",
         },
       ],
       report: [{ href: "/jetpack" }],

@@ -54,6 +54,16 @@ button {
   border-radius: 4px ;
   background-color: rgb(243, 242, 242);
 }
+.range-picker-border {
+  border: 1px solid #eeebeb;
+  border-radius: 4px;
+  color: gray;
+  font-size: 8px;
+}
+.range-picker-border:hover {
+  color: #40a9ff;
+  background-color: #f0f0f0;
+}
 .total-data-col{
   height: 60%;
 }

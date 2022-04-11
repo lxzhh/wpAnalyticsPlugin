@@ -37,6 +37,7 @@ namespace IntervalStats {
     date_end_gmt: Date;
     type: string;
     subtotals: Totals;
+    date_axis: Date;
   }
 
   interface Totals {
@@ -64,5 +65,6 @@ namespace ConversionData {
     totalSessions: number;
     cartRate: number;
     checkoutRate: number;
+    convertedSessions: number;
   }
 }
