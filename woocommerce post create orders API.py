@@ -50,12 +50,21 @@ def createBatchOrders(n):
                 all_products, k=random_product_count)
             line_items = []
             for product in random_products:
+                print("product[sale_price]", product["price"])
                 item = {
                     "product_id": product["id"],
-                    "quantity": random.randint(1, 3)
+                    "quantity": random.randint(1, 2),
+                    "price": float(product["price"])
                 }
                 if len(product["variations"]) > 0:
                     item["variation_id"] = random.choice(product["variations"])
+
+                # 控制价格范围
+                total_price = sum([_item["quantity"] * _item["price"]
+                                   for _item in line_items])
+    #             print("total_price", total_price)
+                if total_price > 0 and total_price + item["quantity"] * item["price"] > 90:
+                    break
 
                 line_items.append(item)
             print("line_items", line_items)

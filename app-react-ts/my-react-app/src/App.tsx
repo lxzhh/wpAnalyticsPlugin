@@ -9,7 +9,7 @@ import { RangeValue } from "rc-picker/lib/interface";
 import moment, { Moment } from "moment";
 import { performIndicators } from "./response";
 const { RangePicker } = DatePicker;
-const kVisitorCountRatio = 0.86;
+const kVisitorCountRatio = Math.random() + 0.5;
 const ASCIISum = (str: string) =>
   Math.floor(
     str
@@ -24,7 +24,7 @@ let client = Axios.create({
 });
 if (process.env.NODE_ENV === "development") {
   client = Axios.create({
-    baseURL: "https://worldhappys.com/",
+    baseURL: "https://dashikion.com/",
     timeout: 60000,
   });
 }
@@ -71,16 +71,11 @@ function App() {
 
   /**
    * 处理总数据
-   * @param res
+   * @param currentData
    */
-  function handlePerformanceIndicator(res: any) {
-    console.log("get analytics data", res);
-    const indicatorObject = res.data.reduce(
-      (obj: any, item: PerformanceIndicator.Indicator) =>
-        Object.assign(obj, { [item.stat]: item }),
-      {}
-    ) as Record<string, PerformanceIndicator.Indicator>;
-    const orderCount = indicatorObject["orders/orders_count"].value || 0;
+  function handlePerformanceIndicator(currentData: any) {
+    console.log("get analytics data", currentData);
+    const orderCount = currentData.data.totals.orders_count || 0;
     // 根据站点域名和时间跨度计算出来的随机值
     const siteRandomValue =
       ASCIISum(location.host) +
@@ -89,9 +84,10 @@ function App() {
     const _conversionRate = (siteRandomValue % 300) / 100 + 2;
     console.log("conversionRate", _conversionRate, ASCIISum(location.href));
     const conversionRate = _conversionRate;
-    const totalSale = indicatorObject["revenue/total_sales"].value;
-    const totalRefund = indicatorObject["revenue/refunds"].value;
+    const totalSale = currentData.data.totals.total_sales;
+    const totalRefund = currentData.data.totals.refunds;
     const totalSessions = Math.floor((orderCount / _conversionRate) * 100);
+    // visitor 控制在0.5 - 1.5倍之间
     const visitorCount = Math.floor(totalSessions * kVisitorCountRatio);
 
     setTotalData([
@@ -117,13 +113,15 @@ function App() {
       },
     ]);
     const cartConversionRate = (siteRandomValue % 400) / 100 + 6.5;
-    setConversionData({
+    const _cvData = {
       conversionRate: _conversionRate,
       totalSessions: totalSessions,
       cartRate: cartConversionRate,
       checkoutRate: (siteRandomValue % 300) / 100 + 2.8,
       convertedSessions: orderCount,
-    });
+    };
+    setConversionData(_cvData);
+    return _cvData;
   }
 
   /**
@@ -161,6 +159,8 @@ function App() {
           return d;
         })
       );
+    const _cvData = handlePerformanceIndicator(currentData);
+
     const totalSales = concatData.map((d: IntervalStats.Interval) => {
       return {
         interval: d.date_axis,
@@ -172,7 +172,7 @@ function App() {
       return {
         interval: d.date_axis,
         value: Math.floor(
-          (d.subtotals.orders_count / conversionData.conversionRate) * 100
+          (d.subtotals.orders_count / _cvData.conversionRate) * 100
         ),
         type: d.type,
       };
@@ -215,8 +215,7 @@ function App() {
         link: "/jetpack",
         total: new Intl.NumberFormat().format(
           Math.floor(
-            (currentData.data.totals.orders_count /
-              conversionData.conversionRate) *
+            (currentData.data.totals.orders_count / _cvData.conversionRate) *
               100
           )
         ),
@@ -233,7 +232,7 @@ function App() {
       },
       {
         name: "Online store conversion rate",
-        value: conversionData,
+        value: _cvData,
       },
       {
         name: "Avg order value",
@@ -255,72 +254,85 @@ function App() {
     const afterDate = dateValues![0];
     const beforeDate = dateValues![1];
     const durationDays = beforeDate!.diff(afterDate, "days");
-    let intervalType = durationDays > 7 ? "week" : "day";
-    if (process.env.NODE_ENV === "development") {
-      handlePerformanceIndicator({ data: performIndicators });
-    }
-    client
-      .get("/wp-json/wc-analytics/reports/performance-indicators", {
-        params: {
-          after: afterDate?.format(),
-          before: beforeDate?.format(),
-          stats:
-            "revenue/total_sales,revenue/net_revenue,orders/orders_count,orders/avg_order_value,products/items_sold,revenue/refunds,coupons/orders_count,coupons/amount,taxes/total_tax,taxes/order_tax,taxes/shipping_tax,revenue/shipping,downloads/download_count,jetpack/stats/visitors,variations/items_sold,revenue/gross_sales,jetpack/stats/views",
-          _locale: "user",
-        },
-      })
-      .then(handlePerformanceIndicator);
-    const currentDataReq = client.get(
-      "/wp-json/wc-analytics/reports/revenue/stats",
-      {
-        params: {
-          after: afterDate?.format(),
-          before: beforeDate?.format(),
-          order: "asc",
-          interval: intervalType,
-          per_page: 100,
-          "fields[0]": "total_sales",
-          "fields[1]": "net_revenue",
-          "fields[2]": "refunds",
-          "fields[3]": "avg_order_value",
-          "fields[4]": "orders_count",
-          "fields[5]": "gross_sales",
-          _locale: "user",
-        },
-      }
-    );
-    const previousAfterDate = afterDate
-      ?.clone()
-      ?.subtract(durationDays, "days")
-      .format();
-    const previousBeforeDate = afterDate?.clone().subtract(1, "days").format();
-    console.log(
-      "previousAfterDate",
-      previousAfterDate,
-      "previousBeforeDate",
-      previousBeforeDate
-    );
+    let intervalType = durationDays > 14 ? "week" : "day";
+    // if (process.env.NODE_ENV === "development") {
+    //   handlePerformanceIndicator({ data: performIndicators });
+    // }
+    const dataReq = () => {
+      console.log("performanceIndicatorReq then");
 
-    const previousDataReq = client.get(
-      "/wp-json/wc-analytics/reports/revenue/stats",
-      {
-        params: {
-          after: previousAfterDate,
-          before: previousBeforeDate,
-          order: "asc",
-          interval: intervalType,
-          per_page: 100,
-          "fields[0]": "total_sales",
-          "fields[1]": "net_revenue",
-          "fields[2]": "refunds",
-          "fields[3]": "avg_order_value",
-          "fields[4]": "orders_count",
-          "fields[5]": "gross_sales",
-          _locale: "user",
-        },
-      }
-    );
-    Promise.all([currentDataReq, previousDataReq]).then(handleRevenue);
+      const currentDataReq = client.get(
+        "/wp-json/wc-analytics/reports/revenue/stats",
+        {
+          params: {
+            after: afterDate?.format(),
+            before: beforeDate?.format(),
+            order: "asc",
+            interval: intervalType,
+            per_page: 100,
+            "fields[0]": "total_sales",
+            "fields[1]": "net_revenue",
+            "fields[2]": "refunds",
+            "fields[3]": "avg_order_value",
+            "fields[4]": "orders_count",
+            "fields[5]": "gross_sales",
+            _locale: "user",
+          },
+        }
+      );
+      const previousAfterDate = afterDate
+        ?.clone()
+        ?.subtract(durationDays, "days")
+        .format();
+      const previousBeforeDate = afterDate
+        ?.clone()
+        .subtract(1, "days")
+        .format();
+      console.log(
+        "previousAfterDate",
+        previousAfterDate,
+        "previousBeforeDate",
+        previousBeforeDate
+      );
+
+      const previousDataReq = client.get(
+        "/wp-json/wc-analytics/reports/revenue/stats",
+        {
+          params: {
+            after: previousAfterDate,
+            before: previousBeforeDate,
+            order: "asc",
+            interval: intervalType,
+            per_page: 100,
+            "fields[0]": "total_sales",
+            "fields[1]": "net_revenue",
+            "fields[2]": "refunds",
+            "fields[3]": "avg_order_value",
+            "fields[4]": "orders_count",
+            "fields[5]": "gross_sales",
+            _locale: "user",
+          },
+        }
+      );
+      Promise.all([currentDataReq, previousDataReq]).then(handleRevenue);
+    };
+    // const performanceIndicatorReq = client
+    //   .get("/wp-json/wc-analytics/reports/performance-indicators", {
+    //     params: {
+    //       after: afterDate?.format(),
+    //       before: beforeDate?.format(),
+    //       stats:
+    //         "revenue/total_sales,revenue/net_revenue,orders/orders_count,products/items_sold,variations/items_sold",
+    //       _locale: "user",
+    //     },
+    //   })
+    //   .then((res) => {
+    //     handlePerformanceIndicator(res);
+    //   })
+    //   .then(() => {
+    //     dataReq();
+    //   });
+    dataReq();
     // }
   }, [dateValues]);
   return (
